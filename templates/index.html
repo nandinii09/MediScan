@@ -1,0 +1,333 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Check-in System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f5f8fa;
+        }
+        .header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .camera-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        .camera-feed {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .biometric-readings {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f7ff;
+            border-radius: 8px;
+            border-left: 4px solid #0d6efd;
+        }
+        .control-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .records-table {
+            margin-top: 20px;
+        }
+        .tab-content {
+            padding-top: 20px;
+        }
+        .submit-section {
+            margin-top: 20px;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1>Medical Check-in System</h1>
+            <p class="text-muted">Automated biometric collection for patient registration</p>
+        </div>
+        
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab" aria-controls="register" aria-selected="true">Register</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="records-tab" data-bs-toggle="tab" data-bs-target="#records" type="button" role="tab" aria-controls="records" aria-selected="false">View Records</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Registration Tab -->
+            <div class="tab-pane fade show active" id="register" role="tabpanel" aria-labelledby="register-tab">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="section">
+                            <h3>Patient Information</h3>
+                            <form id="patientForm">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="age" class="form-label">Age</label>
+                                    <input type="number" class="form-control" id="age" min="1" max="120" required>
+                                </div>
+                                <div id="biometricReadings" class="biometric-readings">
+                                    <h5>Biometric Readings</h5>
+                                    <p>Height: <span id="heightReading">Not measured</span></p>
+                                    <p>Pulse: <span id="pulseReading">Not measured</span></p>
+                                    <p>Temperature: <span id="temperatureReading">Not measured</span></p>
+                                </div>
+                                <div class="submit-section">
+                                    <button type="button" id="saveRecord" class="btn btn-primary" disabled>Save Record</button>
+                                    <div id="saveStatus" class="mt-2"></div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-7">
+                        <div class="section">
+                            <h3>Camera Feed</h3>
+                            <p>Position yourself in front of the camera for biometric measurements.</p>
+                            <div class="camera-container">
+                                <img src="{{ url_for('video_feed') }}" alt="Camera Feed" class="camera-feed">
+                                <div id="loading" class="loading">
+                                    <div class="d-flex align-items-center">
+                                        <div class="spinner-border text-primary me-2" role="status"></div>
+                                        <span>Processing measurements...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="control-buttons">
+                                <button id="startCapture" class="btn btn-success">Start Measurements</button>
+                                <button id="stopCapture" class="btn btn-danger" disabled>Stop Measurements</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Records Tab -->
+            <div class="tab-pane fade" id="records" role="tabpanel" aria-labelledby="records-tab">
+                <div class="section">
+                    <h3>Patient Records</h3>
+                    <div class="table-responsive records-table">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Height (cm)</th>
+                                    <th>Pulse (bpm)</th>
+                                    <th>Temperature (°C)</th>
+                                    <th>Timestamp</th>
+                                    <th>Day</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTable">
+                                <!-- Records will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const startCaptureBtn = document.getElementById('startCapture');
+            const stopCaptureBtn = document.getElementById('stopCapture');
+            const saveRecordBtn = document.getElementById('saveRecord');
+            const loadingIndicator = document.getElementById('loading');
+            const heightReading = document.getElementById('heightReading');
+            const pulseReading = document.getElementById('pulseReading');
+            const temperatureReading = document.getElementById('temperatureReading');
+            const saveStatus = document.getElementById('saveStatus');
+            const nameInput = document.getElementById('name');
+            const ageInput = document.getElementById('age');
+            const recordsTable = document.getElementById('recordsTable');
+            const recordsTab = document.getElementById('records-tab');
+
+            // Start capture
+            startCaptureBtn.addEventListener('click', function() {
+                loadingIndicator.style.display = 'block';
+                fetch('/start_capture', {
+                    method: 'POST',
+                })
+                .then(response => response.json())
+                .then(data => {
+                    startCaptureBtn.disabled = true;
+                    stopCaptureBtn.disabled = false;
+                    heightReading.textContent = 'Measuring...';
+                    pulseReading.textContent = 'Measuring...';
+                    temperatureReading.textContent = 'Measuring...';
+                    saveRecordBtn.disabled = true;
+                })
+                .catch(error => {
+                    console.error('Error starting capture:', error);
+                    loadingIndicator.style.display = 'none';
+                });
+            });
+
+            // Stop capture
+            stopCaptureBtn.addEventListener('click', function() {
+                fetch('/stop_capture', {
+                    method: 'POST',
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingIndicator.style.display = 'none';
+                    startCaptureBtn.disabled = false;
+                    stopCaptureBtn.disabled = true;
+                    
+                    // Update readings
+                    heightReading.textContent = data.height ? `${data.height} cm` : 'Not detected';
+                    pulseReading.textContent = data.pulse ? `${data.pulse} bpm` : 'Not detected';
+                    temperatureReading.textContent = data.temperature ? `${data.temperature} °C` : 'Not detected';
+                    
+                    // Enable save button if we have data and form inputs
+                    if (nameInput.value && ageInput.value) {
+                        saveRecordBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error stopping capture:', error);
+                    loadingIndicator.style.display = 'none';
+                });
+            });
+
+            // Form input validation
+            nameInput.addEventListener('input', validateForm);
+            ageInput.addEventListener('input', validateForm);
+
+            function validateForm() {
+                if (nameInput.value && ageInput.value && 
+                    heightReading.textContent !== 'Not measured' && 
+                    heightReading.textContent !== 'Measuring...') {
+                    saveRecordBtn.disabled = false;
+                } else {
+                    saveRecordBtn.disabled = true;
+                }
+            }
+
+            // Save record
+            saveRecordBtn.addEventListener('click', function() {
+                const name = nameInput.value;
+                const age = parseInt(ageInput.value);
+                
+                if (!name || !age) {
+                    saveStatus.innerHTML = '<div class="alert alert-danger">Please fill in all required fields.</div>';
+                    return;
+                }
+                
+                fetch('/save_record', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        age: age
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        saveStatus.innerHTML = '<div class="alert alert-success">Record saved successfully!</div>';
+                        
+                        // Reset form
+                        nameInput.value = '';
+                        ageInput.value = '';
+                        heightReading.textContent = 'Not measured';
+                        pulseReading.textContent = 'Not measured';
+                        temperatureReading.textContent = 'Not measured';
+                        saveRecordBtn.disabled = true;
+                        
+                        // Add the new record to the table if it's loaded
+                        if (recordsTable.children.length > 0) {
+                            addRecordToTable(data);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving record:', error);
+                    saveStatus.innerHTML = '<div class="alert alert-danger">Error saving record. Please try again.</div>';
+                });
+            });
+
+            // Load records when tab is clicked
+            recordsTab.addEventListener('click', loadRecords);
+
+            function loadRecords() {
+                fetch('/get_records')
+                .then(response => response.json())
+                .then(data => {
+                    recordsTable.innerHTML = '';
+                    if (data.length === 0) {
+                        recordsTable.innerHTML = '<tr><td colspan="8" class="text-center">No records found</td></tr>';
+                        return;
+                    }
+                    
+                    data.forEach(addRecordToTable);
+                })
+                .catch(error => {
+                    console.error('Error loading records:', error);
+                    recordsTable.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading records</td></tr>';
+                });
+            }
+
+            function addRecordToTable(record) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.id}</td>
+                    <td>${record.name}</td>
+                    <td>${record.age}</td>
+                    <td>${record.height}</td>
+                    <td>${record.pulse}</td>
+                    <td>${record.temperature}</td>
+                    <td>${record.timestamp}</td>
+                    <td>${record.day}</td>
+                `;
+                recordsTable.prepend(row);
+            }
+        });
+    </script>
+</body>
+</html>
